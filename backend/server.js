@@ -59,76 +59,137 @@ if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
 
 const FieldValue = admin.firestore.FieldValue;
 
+// Create Enrollment API
+app.post('/api/enrollment/create', async (req, res) => {
+  try {
+    console.log('Creating enrollment:', req.body);
+
+    const { userId, courseId, studentName, email, phone, courseTitle, amount } = req.body;
+
+    // Validate required fields
+    if (!userId || !courseId || !email || !courseTitle || !amount) {
+      return res.status(400).json({
+        error: 'Missing required fields: userId, courseId, email, courseTitle, amount'
+      });
+    }
+
+    // Check if enrollment already exists
+    const existingEnrollments = await adminDb.collection('enrollments')
+      .where('userId', '==', userId)
+      .where('courseId', '==', courseId)
+      .get();
+
+    if (!existingEnrollments.empty) {
+      const existingEnrollment = existingEnrollments.docs[0];
+      const enrollmentData = existingEnrollment.data();
+
+      if (enrollmentData.status === 'Paid') {
+        return res.status(400).json({
+          error: 'Student is already enrolled in this course'
+        });
+      }
+
+      // Return existing pending enrollment
+      return res.json({
+        enrollmentId: existingEnrollment.id,
+        status: 'exists',
+        message: 'Pending enrollment already exists'
+      });
+    }
+
+    // Create new enrollment
+    const enrollmentId = uuidv4();
+    const enrollmentData = {
+      enrollmentId,
+      userId,
+      courseId,
+      studentName: studentName || '',
+      email,
+      phone: phone || '',
+      courseTitle,
+      amount: parseInt(amount),
+      currency: 'INR',
+      status: 'Pending',
+      paymentStatus: 'Pending', // For backward compatibility
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp()
+    };
+
+    await adminDb.collection('enrollments').doc(enrollmentId).set(enrollmentData);
+    console.log('Enrollment created:', enrollmentId);
+
+    res.json({
+      enrollmentId,
+      status: 'created',
+      message: 'Enrollment created successfully'
+    });
+
+  } catch (error) {
+    console.error('Error creating enrollment:', error);
+    res.status(500).json({
+      error: 'Failed to create enrollment',
+      message: error.message
+    });
+  }
+});
+
 // Payment: Create Order
 app.post('/api/payment/order', async (req, res) => {
   try {
     console.log('Creating payment order:', req.body);
 
-    const { userId, courseId, amount, currency = 'INR', customerEmail, customerContact, existingEnrollmentId, notes = {} } = req.body;
+    const { enrollmentId, userId, courseId, amount, currency = 'INR', customerEmail, customerContact, notes = {} } = req.body;
 
     // Validate required fields
-    if (!userId || !courseId || !amount || !customerEmail) {
+    if (!enrollmentId || !userId || !courseId || !amount || !customerEmail) {
       return res.status(400).json({
-        error: 'Missing required fields: userId, courseId, amount, customerEmail'
+        error: 'Missing required fields: enrollmentId, userId, courseId, amount, customerEmail'
       });
     }
 
-    // Use existing enrollment ID or generate new one
-    const enrollmentId = existingEnrollmentId || uuidv4();
+    // Verify enrollment exists and is pending
+    const enrollmentDoc = await adminDb.collection('enrollments').doc(enrollmentId).get();
+    if (!enrollmentDoc.exists) {
+      return res.status(404).json({
+        error: 'Enrollment not found'
+      });
+    }
+
+    const enrollmentData = enrollmentDoc.data();
+    if (enrollmentData.status === 'Paid') {
+      return res.status(400).json({
+        error: 'Enrollment is already paid'
+      });
+    }
 
     // Create Razorpay order
     const orderOptions = {
       amount: parseInt(amount), // amount in paise
       currency,
-      receipt: enrollmentId,
+      receipt: enrollmentId, // Use enrollmentId as receipt
       notes: {
         ...notes,
         enrollmentId,
         userId,
-        courseId
+        courseId,
+        customerEmail
       }
     };
 
     const razorpayOrder = await razorpay.orders.create(orderOptions);
     console.log('Razorpay order created:', razorpayOrder.id);
 
-    // Update or create enrollment in Firestore
-    if (existingEnrollmentId) {
-      // Update existing enrollment with payment details
-      const updateData = {
-        razorpayOrderId: razorpayOrder.id,
-        amount: parseInt(amount),
-        currency,
-        customerEmail,
-        customerContact: customerContact || null,
-        notes,
-        updatedAt: FieldValue.serverTimestamp(),
-        rawWebhookEvents: []
-      };
+    // Update enrollment with Razorpay order details
+    await adminDb.collection('enrollments').doc(enrollmentId).update({
+      razorpayOrderId: razorpayOrder.id,
+      customerEmail,
+      customerContact: customerContact || null,
+      notes,
+      updatedAt: FieldValue.serverTimestamp(),
+      rawWebhookEvents: []
+    });
 
-      await adminDb.collection('enrollments').doc(enrollmentId).update(updateData);
-      console.log('Updated existing enrollment:', enrollmentId);
-    } else {
-      // Create new enrollment
-      const enrollmentData = {
-        enrollmentId,
-        userId,
-        courseId,
-        amount: parseInt(amount),
-        currency,
-        customerEmail,
-        customerContact: customerContact || null,
-        razorpayOrderId: razorpayOrder.id,
-        status: 'Pending',
-        notes,
-        createdAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
-        rawWebhookEvents: []
-      };
-
-      await adminDb.collection('enrollments').doc(enrollmentId).set(enrollmentData);
-      console.log('Created new enrollment:', enrollmentId);
-    }
+    console.log('Enrollment updated with payment details:', enrollmentId);
 
     // Return order details to frontend
     res.json({
@@ -207,17 +268,33 @@ app.post('/api/payment/webhook', async (req, res) => {
 
       console.log('Processing payment.captured for order:', orderId);
 
-      // Find enrollment by razorpayOrderId or enrollmentId in notes
-      let enrollmentDoc = null;
+      // Get order details from Razorpay to find receipt (enrollmentId)
       let enrollmentId = null;
+      let enrollmentDoc = null;
 
-      // First try to find by enrollmentId in payment notes
-      if (payment.notes && payment.notes.enrollmentId) {
-        enrollmentId = payment.notes.enrollmentId;
-        enrollmentDoc = await adminDb.collection('enrollments').doc(enrollmentId).get();
+      try {
+        // Get order details from Razorpay
+        const orderDetails = await razorpay.orders.fetch(orderId);
+        enrollmentId = orderDetails.receipt; // This should be our enrollmentId
+        console.log('Found enrollmentId from receipt:', enrollmentId);
+
+        if (enrollmentId) {
+          enrollmentDoc = await adminDb.collection('enrollments').doc(enrollmentId).get();
+        }
+      } catch (error) {
+        console.error('Error fetching order details:', error);
       }
 
-      // If not found, search by razorpayOrderId
+      // Fallback: Find by enrollmentId in payment notes
+      if (!enrollmentDoc || !enrollmentDoc.exists) {
+        if (payment.notes && payment.notes.enrollmentId) {
+          enrollmentId = payment.notes.enrollmentId;
+          enrollmentDoc = await adminDb.collection('enrollments').doc(enrollmentId).get();
+          console.log('Found enrollment from notes:', enrollmentId);
+        }
+      }
+
+      // Fallback: Search by razorpayOrderId
       if (!enrollmentDoc || !enrollmentDoc.exists) {
         const enrollmentQuery = await adminDb.collection('enrollments')
           .where('razorpayOrderId', '==', orderId)
@@ -227,6 +304,7 @@ app.post('/api/payment/webhook', async (req, res) => {
         if (!enrollmentQuery.empty) {
           enrollmentDoc = enrollmentQuery.docs[0];
           enrollmentId = enrollmentDoc.id;
+          console.log('Found enrollment by razorpayOrderId:', enrollmentId);
         }
       }
 
@@ -235,18 +313,24 @@ app.post('/api/payment/webhook', async (req, res) => {
         return res.status(404).json({ error: 'Enrollment not found' });
       }
 
-      // Update enrollment status
+      // Update enrollment status to Paid
       const updateData = {
         status: 'Paid',
+        paymentStatus: 'Paid', // For backward compatibility
         razorpayPaymentId: paymentId,
         paymentMethod: payment.method || null,
         signature: signature,
+        paidAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
         rawWebhookEvents: FieldValue.arrayUnion(event)
       };
 
       await adminDb.collection('enrollments').doc(enrollmentId).update(updateData);
-      console.log('Enrollment updated to Paid:', enrollmentId);
+      console.log('✅ Enrollment updated to Paid:', enrollmentId);
+
+      // Emit real-time update for admin panel
+      console.log('📡 Broadcasting enrollment update to admin panel');
+
     } else {
       console.log('Unhandled webhook event:', event.event);
     }
@@ -257,6 +341,36 @@ app.post('/api/payment/webhook', async (req, res) => {
     console.error('Webhook processing error:', error);
     res.status(500).json({
       error: 'Webhook processing failed',
+      message: error.message
+    });
+  }
+});
+
+// Get Enrollment Status API
+app.get('/api/enrollment/:enrollmentId/status', async (req, res) => {
+  try {
+    const { enrollmentId } = req.params;
+
+    const enrollmentDoc = await adminDb.collection('enrollments').doc(enrollmentId).get();
+
+    if (!enrollmentDoc.exists) {
+      return res.status(404).json({ error: 'Enrollment not found' });
+    }
+
+    const enrollmentData = enrollmentDoc.data();
+
+    res.json({
+      enrollmentId,
+      status: enrollmentData.status,
+      paymentStatus: enrollmentData.paymentStatus,
+      razorpayPaymentId: enrollmentData.razorpayPaymentId || null,
+      updatedAt: enrollmentData.updatedAt
+    });
+
+  } catch (error) {
+    console.error('Error fetching enrollment status:', error);
+    res.status(500).json({
+      error: 'Failed to fetch enrollment status',
       message: error.message
     });
   }
