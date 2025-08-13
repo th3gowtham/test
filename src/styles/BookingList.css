@@ -1,0 +1,48 @@
+
+
+.booking-list-title {
+  font-weight: bold;
+  font-size: 1.2rem;
+  margin: 1.5rem 0 1rem 0;
+}
+
+.booking-list-ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.booking-list-item {
+  background: none;
+  border: none;
+  box-shadow: none;
+  margin-bottom: 1.2rem;
+  padding: 0.5rem 0 0.5rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.booking-list-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 1.08rem;
+  color: #222;
+}
+
+.booking-list-row:last-child {
+  margin-bottom: 0;
+}
+
+.booking-list-label {
+  font-weight: 500;
+  color: #222;
+}
+
+.booking-list-empty {
+  color: #bbb;
+  font-size: 1.1rem;
+  margin: 2rem 0;
+  padding: 1rem 0;
+}

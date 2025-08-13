@@ -1,0 +1,100 @@
+/* Toast Confirmation Dialog Styles */
+.toast-confirm-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 280px;
+  max-width: 90vw;
+}
+
+.toast-confirm-title {
+  font-weight: 600;
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.toast-confirm-message {
+  font-size: 0.9rem;
+  color: #666;
+  line-height: 1.4;
+  word-wrap: break-word;
+}
+
+.toast-confirm-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.toast-confirm-btn {
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  border: none;
+  min-width: 60px;
+}
+
+.toast-confirm-btn-cancel {
+  border: 1px solid #ddd;
+  background: #fff;
+  color: #333;
+}
+
+.toast-confirm-btn-cancel:hover {
+  background: #f5f5f5;
+  border-color: #ccc;
+}
+
+.toast-confirm-btn-confirm {
+  background: #ef4444;
+  color: #fff;
+}
+
+.toast-confirm-btn-confirm:hover {
+  background: #dc2626;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .toast-confirm-container {
+    min-width: 250px;
+    max-width: calc(100vw - 40px);
+  }
+  
+  .toast-confirm-title {
+    font-size: 0.9rem;
+  }
+  
+  .toast-confirm-message {
+    font-size: 0.85rem;
+  }
+  
+  .toast-confirm-buttons {
+    justify-content: space-between;
+  }
+  
+  .toast-confirm-btn {
+    flex: 1;
+    min-width: 0;
+    padding: 8px 12px;
+  }
+}
+
+@media (max-width: 360px) {
+  .toast-confirm-container {
+    min-width: 220px;
+  }
+  
+  .toast-confirm-buttons {
+    flex-direction: column;
+    gap: 6px;
+  }
+  
+  .toast-confirm-btn {
+    width: 100%;
+  }
+} 

@@ -1,0 +1,258 @@
+
+
+/* Save button */
+.save-button {
+  background-color: #14b8a6;
+  color: white;
+  padding: 0.6rem 1.5rem;
+  font-size: 0.875rem;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.save-button:hover {
+  background-color: #14b8a6;
+}
+
+.preference-text h4 {
+  font-weight: 700;
+  color: #111827;
+  font-size: 0.95rem;
+  margin-bottom: 0.1rem;
+}
+
+.preference-text p {
+  font-size: 0.875rem;
+  color: #374151;
+  margin-bottom: 0;
+}
+
+.settings-section h3 {
+  font-size: 1.05rem;
+}
+
+.settings-section p {
+  font-size: 0.875rem;
+}
+
+.preference-icon {
+  display: flex;
+  align-items: center;
+  margin-right: 1rem;
+  color: #14b8a6;
+  min-width: 24px;
+}
+
+.preference-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  width: 100%;
+  padding: 1.25rem 0;
+  border-bottom: 1px solid #f3f4f6;
+  gap: 0;
+}
+
+.preference-item > *:last-child {
+  flex-shrink: 0;
+  margin-left: auto;
+  margin-top: 0;
+}
+
+.preference-text {
+  flex: 1;
+  width: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.settings-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid #14b8a6;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  position: relative;
+  transition: border-color 0.2s, background 0.2s;
+  outline: none;
+  margin-left: 8px;
+  margin-right: 0;
+  vertical-align: middle;
+}
+
+.settings-checkbox:checked {
+  background: #14b8a6;
+  border-color: #14b8a6;
+}
+
+.settings-checkbox:checked::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 1.5px;
+  width: 4px;
+  height: 9px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+  display: block;
+}
+
+.settings-toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 22px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.settings-toggle-checkbox {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.settings-toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #ccc;
+  transition: 0.3s;
+  border-radius: 22px;
+}
+
+.settings-toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.settings-toggle-checkbox:checked + .settings-toggle-slider {
+  background-color: #14b8a6;
+}
+
+.settings-toggle-checkbox:checked + .settings-toggle-slider:before {
+  transform: translateX(18px);
+}
+
+@media (max-width: 639px) {
+  .settings-section h3 {
+    font-size: 1rem;
+  }
+
+  .settings-section p {
+    font-size: 0.8rem;
+  }
+
+  .preference-item {
+    padding: 1rem 0;
+  }
+
+  .preference-text h4 {
+    font-size: 0.9rem;
+  }
+
+  .preference-text p {
+    font-size: 0.8rem;
+  }
+
+  .save-button {
+    width: 100%;
+    font-size: 0.9rem;
+  }
+}
+
+/* NEW STYLES FOR TOGGLE BUTTONS AND TYPOGRAPHY */
+
+/* Section titles - bold */
+.section-title {
+  font-weight: 700 !important;
+  font-size: 1.25rem !important;
+  color: #111827 !important;
+  margin-bottom: 0.5rem !important;
+}
+
+/* Section descriptions - normal */
+.section-description {
+  font-weight: 400 !important;
+  font-size: 0.875rem !important;
+  color: #6b7280 !important;
+  margin-bottom: 1.5rem !important;
+}
+
+/* Preference titles - normal weight */
+.preference-title {
+  font-weight: 400 !important;
+  font-size: 1rem !important;
+  color: #111827 !important;
+  margin-bottom: 0.25rem !important;
+}
+
+/* Preference subtitles - normal */
+.preference-subtitle {
+  font-weight: 400 !important;
+  font-size: 0.875rem !important;
+  color: #6b7280 !important;
+  margin: 0 !important;
+}
+
+/* Toggle Switch Container */
+.toggle-switch {
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Toggle Slider */
+.toggle-slider {
+  width: 50px;
+  height: 24px;
+  background-color: #e5e7eb;
+  border-radius: 12px;
+  position: relative;
+  transition: background-color 0.3s ease;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.toggle-slider.active {
+  background-color: #10b981;
+}
+
+/* Toggle Knob */
+.toggle-knob {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: white;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-slider.active .toggle-knob {
+  transform: translateX(26px);
+}
+
+/* Hover effects */
+.toggle-switch:hover .toggle-slider {
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.15), 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.toggle-switch:hover .toggle-slider.active {
+  background-color: #059669;
+}

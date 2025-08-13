@@ -1,0 +1,102 @@
+.custom-navbar {
+
+  background: #fafbfc !important;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+.brand-text {
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: #231f20;
+  letter-spacing: 1px;
+}
+
+.brand-subtext {
+  font-size: 0.9rem;
+  font-weight: 400;
+  letter-spacing: 2px;
+  color: #231f20;
+}
+
+.welcome-text {
+  font-size: 1.05rem;
+  color: #444;
+  font-weight: 400;
+}
+
+.main-link {
+  background-color: #1693a5 !important;
+  color: #fff !important;
+  font-weight: 500;
+  border: none;
+  transition: background 0.2s;
+}
+
+.main-link:hover,
+.main-link:focus {
+  background-color: #117a8b !important;
+  color: #fff !important;
+}
+
+.navbar-nav .nav-link {
+  font-size: 1.1rem;
+  margin: 0 0.2rem;
+  transition: color 0.2s;
+}
+
+.navbar-nav .nav-link.active {
+  color: #1693a5 !important;
+  font-weight: 700;
+  border-bottom: 2px solid #1693a5;
+  background: transparent;
+}
+
+@media (max-width: 991.98px) {
+  .navbar-nav {
+    text-align: center;
+  }
+
+  .navbar-collapse {
+    background: #f0f1f2;
+    padding-bottom: 1rem;
+    border-radius: 0 0 12px 12px;
+    position: absolute;
+    top: 89px;
+    right: -7px;
+    margin: 8px 16px;
+    padding: 24px;
+    border-radius: 10px;
+
+
+  }
+
+  .main-link {
+    width: 100%;
+    margin-top: 0.5rem;
+  }
+
+  .welcome-text {
+    display: block !important;
+    text-align: center;
+    margin-bottom: 0.5rem;
+  }
+
+}
+
+@media (max-width: 575.98px) {
+  .navbar-brand img {
+    width: 200px;
+    height: 80px;
+  }
+
+  .brand-text {
+    font-size: 0.9rem;
+  }
+
+  .main-link {
+    font-size: 1rem;
+    padding: 0.5rem 1.2rem;
+  }
+}

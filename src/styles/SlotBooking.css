@@ -1,0 +1,206 @@
+.booking-wrapper {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: system-ui, -apple-system, sans-serif;
+  background-color: #f8fafc;
+  min-height: 100vh;
+}
+
+.booking-card {
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 24px;
+}
+
+.booking-title {
+  color: #1e293b;
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.slot-card {
+  background-color: #f1f5f9;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.slot-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.slot-header.tablet {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.slot-title {
+  color: #334155;
+  font-size: 18px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.slot-controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.copy-select, .clear-btn {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background-color: white;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.clear-btn {
+  background-color: #ef4444;
+  color: white;
+  border: none;
+}
+
+.booking-form-group {
+  margin-bottom: 16px;
+}
+
+.booking-form-group label {
+  display: block;
+  color: #475569;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+
+.booking-form-group input {
+  width: 100%;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  font-size: 16px;
+}
+
+.time-picker {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.time-picker.stacked {
+  flex-direction: column;
+}
+
+.time-picker.tablet {
+  flex-direction: column;
+}
+
+.time-picker.desktop {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr auto;
+}
+
+.time-group label {
+  display: block;
+  color: #475569;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+
+.time-row {
+  display: flex;
+  gap: 8px;
+}
+
+.time-row select {
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  font-size: 16px;
+}
+
+.time-row select:nth-child(2) {
+  width: 70px;
+}
+
+.slot-summary {
+  margin-top: 12px;
+  padding: 12px;
+  background-color: #dbeafe;
+  border-radius: 6px;
+  border: 1px solid #93c5fd;
+}
+
+.slot-day {
+  color: #1e40af;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.slot-time {
+  color: #1e40af;
+  font-size: 16px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.summary-box {
+  margin-top: 24px;
+  padding: 16px;
+  background-color: #f0f9ff;
+  border-radius: 8px;
+  border: 1px solid #0ea5e9;
+}
+
+.summary-box h4 {
+  color: #0c4a6e;
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.summary-box p {
+  color: #64748b;
+  margin: 0;
+  font-size: 14px;
+}
+
+.summary-list {
+  font-size: 14px;
+  color: #0c4a6e;
+}
+
+.submit-btn {
+  width: 100%;
+  padding: 14px;
+  background-color: #059669;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 20px;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.submit-btn:hover {
+  background-color: #047857;
+}
