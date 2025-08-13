@@ -1,8 +1,5 @@
-import React, { createContext, useContext, useState } from "react";
 import { useAuth } from "./AuthContext";
 import { toast } from "react-toastify";
-import { db } from "../services/firebase";
-import { collection, query, where, getDocs, updateDoc, doc, addDoc, serverTimestamp } from "firebase/firestore";
 
 const PaymentContext = createContext();
 
@@ -27,53 +24,37 @@ export const PaymentProvider = ({ children }) => {
 
     try {
       setLoading(true);
+      const apiUrl = import.meta.env.VITE_API_URL;
 
-      // Check if user already has an enrollment for this course
-      const enrollmentsRef = collection(db, "enrollments");
-      const q = query(
-        enrollmentsRef,
-        where("userId", "==", user.uid),
-        where("courseId", "==", course.id)
-      );
-
-      const querySnapshot = await getDocs(q);
-      let enrollmentId = null;
-
-      if (!querySnapshot.empty) {
-        // Use existing enrollment
-        const existingEnrollment = querySnapshot.docs[0];
-        enrollmentId = existingEnrollment.id;
-        const enrollmentData = existingEnrollment.data();
-
-        if (enrollmentData.status === "Paid") {
-          toast.error("You are already enrolled in this course!");
-          return;
-        }
-
-        console.log("Using existing enrollment:", enrollmentId);
-      } else {
-        // Create new pending enrollment
-        const enrollmentData = {
+      // Step 1: Create enrollment via backend API
+      const enrollmentResponse = await fetch(`${apiUrl}/api/enrollment/create`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           userId: user.uid,
           courseId: course.id,
           studentName: userName || user.displayName || "",
           email: user.email,
           phone: user.phoneNumber || "",
           courseTitle: course.title,
-          amount: course.fee * 100, // Store in paise
-          currency: "INR",
-          status: "Pending",
-          paymentStatus: "Pending", // For backward compatibility
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp()
-        };
+          amount: course.fee * 100 // Amount in paise
+        }),
+      });
 
-        const docRef = await addDoc(enrollmentsRef, enrollmentData);
-        enrollmentId = docRef.id;
-        console.log("Created new enrollment:", enrollmentId);
+      if (!enrollmentResponse.ok) {
+        const errorData = await enrollmentResponse.json();
+        throw new Error(errorData.error || "Failed to create enrollment");
       }
 
-      // Now start payment for this enrollment
+      const { enrollmentId, status, message } = await enrollmentResponse.json();
+      console.log("Enrollment response:", { enrollmentId, status, message });
+
+      if (status === 'exists' && message.includes('already enrolled')) {
+        toast.error("You are already enrolled in this course!");
+        return;
+      }
+
+      // Step 2: Start payment for this enrollment
       await startPaymentForEnrollment(course, enrollmentId);
 
     } catch (error) {
@@ -84,7 +65,7 @@ export const PaymentProvider = ({ children }) => {
     }
   };
 
-  const startPaymentForEnrollment = async (course, existingEnrollmentId = null) => {
+  const startPaymentForEnrollment = async (course, enrollmentId) => {
     try {
       setLoading(true);
       const apiUrl = import.meta.env.VITE_API_URL;
@@ -92,13 +73,13 @@ export const PaymentProvider = ({ children }) => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          enrollmentId: enrollmentId, // Required: existing enrollment ID
           userId: user.uid,
           courseId: course.id,
           amount: course.fee * 100, // Convert to paise
           currency: "INR",
           customerEmail: user.email,
           customerContact: user.phoneNumber || null,
-          existingEnrollmentId: existingEnrollmentId, // Pass existing enrollment ID
           notes: {
             name: userName || '',
             courseName: course.title
@@ -111,7 +92,7 @@ export const PaymentProvider = ({ children }) => {
         throw new Error(errorData.error || "Failed to create order");
       }
 
-      const { orderId, key, amount, currency, enrollmentId } = await response.json();
+      const { orderId, key, amount, currency } = await response.json();
       const options = {
         key: key,
         amount: amount,
@@ -133,40 +114,36 @@ export const PaymentProvider = ({ children }) => {
             });
             const verifyData = await verifyResponse.json();
             if (verifyResponse.ok) {
-              // Note: Enrollment status is now updated via webhook automatically
-              // The backend webhook will update the enrollment status to "Paid"
-              toast.success("Payment successful!");
+              toast.success("Payment successful! Processing enrollment...");
+
+              // Poll enrollment status to confirm webhook update
+              let attempts = 0;
+              const maxAttempts = 10;
+              const pollInterval = 2000; // 2 seconds
+
+              const pollStatus = async () => {
+                try {
+                  const statusResponse = await fetch(`${apiUrl}/api/enrollment/${enrollmentId}/status`);
+                  if (statusResponse.ok) {
+                    const statusData = await statusResponse.json();
+                    if (statusData.status === 'Paid') {
+                      toast.success("Enrollment confirmed! You are now enrolled in the course.");
+                      return true;
+                    }
+                  }
+
+                  attempts++;
+                  if (attempts < maxAttempts) {
+                    setTimeout(pollStatus, pollInterval);
+                  } else {
+                    toast.warning("Payment successful, but enrollment status is still updating. Please refresh the page.");
+                  }
+                } catch (error) {
+                  console.error("Error polling enrollment status:", error);
+                }
+              };
+
+              // Start polling
+              setTimeout(pollStatus, 1000);
+
             } else {
-              toast.error(verifyData.error || "Payment verification failed");
-            }
-          } catch (error) {
-            toast.error("Payment verification failed: " + error.message);
-          }
-        },
-        prefill: {
-          name: user.displayName || "",
-          email: user.email || "",
-        },
-        theme: { color: "#F7A4A4" }
-      };
-      const razorpayInstance = new window.Razorpay(options);
-      razorpayInstance.open();
-    } catch (error) {
-      toast.error("Failed to process payment: " + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <PaymentContext.Provider value={{
-      startPayment: createEnrollmentAndPay, // Use new function as default
-      startPaymentForEnrollment, // For existing enrollments
-      loading
-    }}>
-      {children}
-    </PaymentContext.Provider>
-  );
-};
-
-export const usePayment = () => useContext(PaymentContext);
