@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState } from "react";
 import { useAuth } from "./AuthContext";
 import { toast } from "react-toastify";
 import { db } from "../services/firebase";
-import { collection, query, where, getDocs, updateDoc, doc } from "firebase/firestore";
+import { collection, query, where, getDocs, updateDoc, doc, addDoc, serverTimestamp } from "firebase/firestore";
 
 const PaymentContext = createContext();
 
@@ -10,7 +10,8 @@ export const PaymentProvider = ({ children }) => {
   const { user, userRole, userName } = useAuth();
   const [loading, setLoading] = useState(false);
 
-  const startPayment = async (course) => {
+  // Create enrollment first, then start payment
+  const createEnrollmentAndPay = async (course) => {
     // Log user and role for debugging
     console.log("[PaymentContext] user:", user, "userRole:", userRole);
 
@@ -23,6 +24,67 @@ export const PaymentProvider = ({ children }) => {
       toast.error("Please login to enroll in the course");
       return;
     }
+
+    try {
+      setLoading(true);
+
+      // Check if user already has an enrollment for this course
+      const enrollmentsRef = collection(db, "enrollments");
+      const q = query(
+        enrollmentsRef,
+        where("userId", "==", user.uid),
+        where("courseId", "==", course.id)
+      );
+
+      const querySnapshot = await getDocs(q);
+      let enrollmentId = null;
+
+      if (!querySnapshot.empty) {
+        // Use existing enrollment
+        const existingEnrollment = querySnapshot.docs[0];
+        enrollmentId = existingEnrollment.id;
+        const enrollmentData = existingEnrollment.data();
+
+        if (enrollmentData.status === "Paid") {
+          toast.error("You are already enrolled in this course!");
+          return;
+        }
+
+        console.log("Using existing enrollment:", enrollmentId);
+      } else {
+        // Create new pending enrollment
+        const enrollmentData = {
+          userId: user.uid,
+          courseId: course.id,
+          studentName: userName || user.displayName || "",
+          email: user.email,
+          phone: user.phoneNumber || "",
+          courseTitle: course.title,
+          amount: course.fee * 100, // Store in paise
+          currency: "INR",
+          status: "Pending",
+          paymentStatus: "Pending", // For backward compatibility
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        };
+
+        const docRef = await addDoc(enrollmentsRef, enrollmentData);
+        enrollmentId = docRef.id;
+        console.log("Created new enrollment:", enrollmentId);
+      }
+
+      // Now start payment for this enrollment
+      await startPaymentForEnrollment(course, enrollmentId);
+
+    } catch (error) {
+      console.error("Error creating enrollment:", error);
+      toast.error("Failed to create enrollment: " + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const startPaymentForEnrollment = async (course, existingEnrollmentId = null) => {
     try {
       setLoading(true);
       const apiUrl = import.meta.env.VITE_API_URL;
@@ -36,6 +98,7 @@ export const PaymentProvider = ({ children }) => {
           currency: "INR",
           customerEmail: user.email,
           customerContact: user.phoneNumber || null,
+          existingEnrollmentId: existingEnrollmentId, // Pass existing enrollment ID
           notes: {
             name: userName || '',
             courseName: course.title
@@ -96,7 +159,11 @@ export const PaymentProvider = ({ children }) => {
   };
 
   return (
-    <PaymentContext.Provider value={{ startPayment, loading }}>
+    <PaymentContext.Provider value={{
+      startPayment: createEnrollmentAndPay, // Use new function as default
+      startPaymentForEnrollment, // For existing enrollments
+      loading
+    }}>
       {children}
     </PaymentContext.Provider>
   );
