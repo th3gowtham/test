@@ -64,7 +64,7 @@ app.post('/api/payment/order', async (req, res) => {
   try {
     console.log('Creating payment order:', req.body);
 
-    const { userId, courseId, amount, currency = 'INR', customerEmail, customerContact, notes = {} } = req.body;
+    const { userId, courseId, amount, currency = 'INR', customerEmail, customerContact, existingEnrollmentId, notes = {} } = req.body;
 
     // Validate required fields
     if (!userId || !courseId || !amount || !customerEmail) {
@@ -73,8 +73,8 @@ app.post('/api/payment/order', async (req, res) => {
       });
     }
 
-    // Generate enrollment ID
-    const enrollmentId = uuidv4();
+    // Use existing enrollment ID or generate new one
+    const enrollmentId = existingEnrollmentId || uuidv4();
 
     // Create Razorpay order
     const orderOptions = {
@@ -92,25 +92,43 @@ app.post('/api/payment/order', async (req, res) => {
     const razorpayOrder = await razorpay.orders.create(orderOptions);
     console.log('Razorpay order created:', razorpayOrder.id);
 
-    // Save enrollment to Firestore
-    const enrollmentData = {
-      enrollmentId,
-      userId,
-      courseId,
-      amount: parseInt(amount),
-      currency,
-      customerEmail,
-      customerContact: customerContact || null,
-      razorpayOrderId: razorpayOrder.id,
-      status: 'Pending',
-      notes,
-      createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
-      rawWebhookEvents: []
-    };
+    // Update or create enrollment in Firestore
+    if (existingEnrollmentId) {
+      // Update existing enrollment with payment details
+      const updateData = {
+        razorpayOrderId: razorpayOrder.id,
+        amount: parseInt(amount),
+        currency,
+        customerEmail,
+        customerContact: customerContact || null,
+        notes,
+        updatedAt: FieldValue.serverTimestamp(),
+        rawWebhookEvents: []
+      };
 
-    await adminDb.collection('enrollments').doc(enrollmentId).set(enrollmentData);
-    console.log('Enrollment saved to Firestore:', enrollmentId);
+      await adminDb.collection('enrollments').doc(enrollmentId).update(updateData);
+      console.log('Updated existing enrollment:', enrollmentId);
+    } else {
+      // Create new enrollment
+      const enrollmentData = {
+        enrollmentId,
+        userId,
+        courseId,
+        amount: parseInt(amount),
+        currency,
+        customerEmail,
+        customerContact: customerContact || null,
+        razorpayOrderId: razorpayOrder.id,
+        status: 'Pending',
+        notes,
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+        rawWebhookEvents: []
+      };
+
+      await adminDb.collection('enrollments').doc(enrollmentId).set(enrollmentData);
+      console.log('Created new enrollment:', enrollmentId);
+    }
 
     // Return order details to frontend
     res.json({
