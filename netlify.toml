@@ -9,10 +9,10 @@
 
 # Production environment variables
 [context.production.environment]
-  VITE_API_URL = "https://thehoneybee-gl4r.onrender.com"
+  VITE_API_URL = "https://test-pvif.onrender.com"
   VITE_CLIENT_URL = "http://localhost:5173"
 
 # Branch deploy environment variables - useful for staging/testing
 [context.branch-deploy.environment]
-  VITE_API_URL = "https://thehoneybee-gl4r.onrender.com"
+  VITE_API_URL = "https://test-pvif.onrender.com"
   VITE_CLIENT_URL = "http://localhost:5173"
